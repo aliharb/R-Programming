@@ -1,0 +1,167 @@
+---
+title: "Assignment 4"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Assignment Description  
+
+Exploratory Data Analysis in R. Choose an interesting dataset and use R graphics to describe the data. You may use base R graphics, or a graphics package of your choice. You should include at least one example of each of the following:
+
+. histogram
+. boxplot
+. scatterplot
+
+## Aircraft Dataset
+
+Description: 
+
+Aircraft Data, deals with 23 single-engine aircraft built over the years 1947-1979, from Office of Naval Research. The dependent variable is cost (in units of \$100,000) and the explanatory variables are aspect ratio, lift-to-drag ratio, weight of plane (in pounds) and maximal thrust.
+
+Format 
+A data frame with 23 observations on the following 5 variables.
+X1:Aspect Ratio
+X2:Lift-to-Drag Ratio
+X3:Weight
+X4:Thrust
+Y:Cost
+
+Source:
+
+P. J. Rousseeuw and A. M. Leroy (1987) Robust Regression and Outlier Detection; Wiley, page 154, table 22.
+
+Links: 
+
+Aircraft from Aircraft Data, robustbase data base package, Rdatasets
+
+The CSV Data file downloaded from the following link under the title Aircraft Data:
+        http://vincentarelbundock.github.io/Rdatasets/datasets.html
+
+Data description link: 
+        http://vincentarelbundock.github.io/Rdatasets/doc/robustbase/aircraft.html
+
+## Objective 
+The objective of the report is to analyze and observe the effect of the independent variables on the dependent variable which is the cost of the aircrafts
+
+## Load the required libraries 
+
+```{r}
+
+library(ggplot2)
+library(grid)
+library(gridExtra)
+```
+
+## Import Dataset
+
+Import the downloaded aircraft dataset from R directory to the R studio environment and store it into aircraft_data
+
+```{r}
+aircraft_data <- read.csv("aircraft.csv")
+head(aircraft_data)
+```
+
+Change the headers to the proper representation of the variables
+
+```{r}
+colnames(aircraft_data)<-c("Id","Aspect_Ratio","Lift_to_Drag_Ratio","Weight","Thrust","Cost")
+head(aircraft_data)
+```
+
+## Primary analisys 
+
+Let's take a look at the dataset summary
+```{r}
+summary(aircraft_data)
+```
+
+From the summary, we can conclude that most of the aircraft were designed with fairly high aspect-ratio with the mean value of 3.91. 
+
+## Histogram Analysis
+
+Let's plot the histogram to inspect the frequency distribution of the depended variable
+
+```{r}
+hist(aircraft_data$Cost, main = "Cost Distribution (in units of $100,000)"
+     ,xlab = "Cost",ylab = "Frequency"
+     ,breaks = 20
+     ,col = "Orange")
+
+```
+
+The right skewed histogram indicates that most of the aircrafts cost were under 40 with two exception of a higher cost of 60 and 100 
+
+## Boxplot 
+
+let observe the boxplot of the cost variable and check the outlier and the mean value 
+
+```{r}
+ggplot(aircraft_data, aes(1, Cost)) + 
+  geom_boxplot() +
+  geom_boxplot(outlier.colour = "green", outlier.size = 3)+
+  stat_summary(fun.y=mean, geom="point", shape=23, size=4)
+```
+
+
+## Multiple Linear Regression
+
+To determine which of the of independent variables have an effect on the output cost we must use multiple linear regression where it is modeled as function of several explanatory variables
+
+Before fitting our regression model, we want to investigate how the variables are related to one another
+
+```{r}
+plot(aircraft_data)
+```
+
+From the plot we can observe that Thrust increase when weight increase and the lift-to-drag ration decrease aspect ratio has an effect on the lift-to-drag ratio
+
+Based on the observation let's take a close look at the relationship between these variables  
+
+```{r}
+p1<-ggplot(aircraft_data, aes(x =Aspect_Ratio, y =Lift_to_Drag_Ratio)) + 
+  geom_point() +
+  stat_smooth(method = "lm", col = "red")
+
+p2<-ggplot(aircraft_data, aes(x =Weight, y =Thrust)) + 
+  geom_point() +
+  stat_smooth(method = "lm", col = "red")
+
+p3<-ggplot(aircraft_data, aes(x =Weight, y =Cost)) + 
+  geom_point() +
+  stat_smooth(method = "lm", col = "red")
+
+p4<-ggplot(aircraft_data, aes(x =Aspect_Ratio, y =Cost)) + 
+  geom_point() +
+  stat_smooth(method = "lm", col = "red")
+
+grid.arrange(p1, p2, p3, p4)
+
+```
+
+The plot shows avery weak relationship between aspect-ration and lift-drag-ratio while it illustrates a strong relationship between weight and trust. Looking at the relationship between cost and weight vs cost and aspect-ratio it indicates that high aspect-ratio decrease the cost while weight increase the cost. The big question is, which of the two variables has more influence on the output? Thus, we need to investigate using multiple regression and look at the significance level 
+
+```{r}
+multi_reg<-lm(Cost~Aspect_Ratio + Weight, data=aircraft_data)
+All = lm(Cost ~ Aspect_Ratio + Weight + Thrust + Lift_to_Drag_Ratio, data=aircraft_data)
+anova(multi_reg,All) 
+
+```
+
+The p value of .00375 is less than 5% which indicates that all variables a have some type of influence on Cost
+
+Now we can plot the normal distribution and observe the trend line of the regression
+
+```{r}
+qqnorm(multi_reg$res)
+qqline(multi_reg$res)
+
+```
+
+
+
+
+
+
