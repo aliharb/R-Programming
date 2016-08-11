@@ -1,0 +1,122 @@
+---
+title: "R Final Project"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Description
+
+The dataset contains all flights departing from Houston airports IAH and HOU to verious various locations. 
+
+Administration at the Bureau of Transporation statistics:: http://www.transtats.bts.gov/
+DatabaseInfo.asp?DB_ID=120&Link=0
+
+
+## Software Preparation  
+
+Install package hflights
+
+```{r}
+# install.packages('hflights')
+```
+
+Load libraries 
+
+```{r}
+library(hflights)
+library(ggplot2)
+library(MASS)
+library(survival)
+library(fitdistrplus)
+```
+
+
+## Load Data To The Envirement 
+
+```{r}
+flight_data<-hflights
+nrow(flight_data)
+ncol(flight_data)
+names(flight_data)
+```
+
+## Response Variables
+
+In this dataset we will take the arrival delay as a response variable
+
+## Rationale 
+
+The rational of this design is trying to find if there is a relationship between departure delay and arrival delay using null hypothesis with P < 0.05. we will test upon there is no relationship between the two variables  
+
+## Variables description 
+
+summary statistics
+
+```{r}
+ArrDelay_y<-na.omit(flight_data$ArrDelay)
+summary(ArrDelay_y)
+```
+
+```{r}
+DepDelay_X<-na.omit(flight_data$DepDelay)
+summary(DepDelay_X)
+```
+
+Visual graphic description 
+
+```{r}
+hist(ArrDelay_y, main = "Arrival Delay", xlab = "ArrDelay ", ylab = "Frequency",
+                                         xlim = c(0, 1000), breaks = 20, border = "blue")
+```
+
+```{r}
+hist(DepDelay_X, main = "Departure Delay", xlab = "Departure Delay", ylab = "Frequency",
+                                         xlim = c(0, 1000), breaks = 20, border = "orange")
+```
+
+clean all data
+
+```{r}
+get_na_omittedData=na.omit(flight_data)
+```
+
+## Scatter plot
+
+```{r}
+y=get_na_omittedData$ArrDelay
+x=get_na_omittedData$DepDelay
+
+ggplot(get_na_omittedData, aes(x,y))+
+    geom_point(shape=1) + 
+    geom_jitter(aes(colour = y))+
+    labs(title = "Arrival Delay vs Departure Delay")+
+    xlab("Departure Delay") +   
+    ylab("Arrival Delay") +
+    geom_smooth(method=lm) 
+```
+
+## Analysis 
+
+We will do the t test to look at the p Value and the estimate mean of the two variables  
+
+```{r}
+t.test(flight_data$DepDelay,flight_data$ArrDelay)
+
+```
+
+From the test we can see that the p value is less than 0.05 and it reject the null hypothesis. Thus, the two variables seems to be depended 
+
+lets look at the correlation between the two variables
+
+```{r}
+cor.test(get_na_omittedData$ArrDelay,get_na_omittedData$DepDelay,use="complete.obs")
+```
+
+## Conclusion 
+
+The correlation of 93% and the small P value shows a strong relationship between the two variables. The analysis indicates that departure delay is related to the cause of arrival delay. Looking at the graph, from the condensed congestion of the jitter points we can also determine that there is strong relationship.  
+
+
