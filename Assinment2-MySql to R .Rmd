@@ -1,0 +1,104 @@
+---
+title: "Assignment MSQL to R"
+author: "Ali Harb"
+date: "September 11, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Introduction
+
+The objective is to construct a survey for the six recent popular movies.  several people will be asked to participate to rate each of these movie that they have seen on a scale of 1 to 5. Results will be stored in a MySQL database and then load the information into an R dataframe for analysis.
+
+## Library Requirement
+
+The mysql and ggplot will be used to import, select query, and plot the data frame
+
+```{r lib}
+library('DBI')
+library('RMySQL')
+library('ggplot2')
+```
+
+## Import data 
+
+Connecting R to data base using MySQL library, then select a query to create a dataset and store the information into data frame.
+
+```{r set-options, echo=FALSE, cache=FALSE}
+options(width =80)
+
+drv = dbDriver("MySQL")
+mydb <- dbConnect(drv, user='root', dbname='moviesRating')
+mydata <- dbGetQuery(mydb,"SELECT p.Participantid,p.ParticipantName,
+                     m.movieTitle,
+                     r.rate
+                     FROM rateMyMovies r
+                     INNER JOIN participant p
+                     ON r.ParticipantId = p.ParticipantId
+                     INNER JOIN movies m
+                     ON r.movieId = m.movieId;")
+mydata
+```
+
+## Data Summary 
+
+look into the data types and some ready statistic values 
+
+```{r summary}
+str(mydata)
+
+summary(mydata)
+```
+
+
+## Plot Analysis
+
+Plot the movies verses rate to visually analyze any relationship or observe the results using the boxplot and add statistic summary to every movie boxplot
+
+```{r fig.width=15, fig.height=5}
+
+means <- aggregate(rate~movieTitle,data=mydata, FUN =mean)
+medians <- aggregate(rate~movieTitle,data=mydata, FUN=median)
+
+p <- ggplot(mydata, aes(factor(movieTitle), rate))
+p + geom_boxplot(aes(fill = movieTitle))+
+  stat_summary(fun.y=mean, colour="darkred", 
+               geom="point", shape=18, size=3)+
+                geom_text(data = means, aes(label =factor(movieTitle), 
+                                            y = rate + 0.08))
+
+
+the_means <-means[order(means$rate,decreasing = TRUE),]
+the_medians <-medians[order(medians$rate,decreasing = TRUE),]
+
+```
+
+based on the mean values the following is the table present the rating from highets to the lowest
+ 
+```{r}
+the_means
+```
+
+based on the median values the follwing table present the rating from the heighest to the lowest
+
+```{r}
+the_medians
+```
+
+## Conclusion 
+
+In conclusion, the plot shows that people have a diverse opinion regarding the Sausage party and Mechanic Resurrection illustrated by the large interquartile value. While other where having fairly small consistent interquartile region which indicates that people tend to have similar opinion about these movies disregard of their rating.  Based on the median the Don't Breathe get the highest rating followed by Mechanic Resurrection and suicide squad with 4.0 rating. Sausage Party get 3.5 rating little higher the Kubo and the Two Strings of 3.0 points. Pete,s Dragon is the last on the list with 2.0 point rating.
+
+
+
+
+
+                                                          ----
+```{r}
+
+```
+
