@@ -1,0 +1,173 @@
+---
+title: "Expressions Homework"
+author: "Ali Harb"
+date: "9/17/2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Initial Setup 
+
+For this homework the string library is needed to manipulate qualitative data
+
+```{r loading lib}
+library(stringr)
+```
+
+## Loading Data
+
+Load the given raw data and extract the names into a vector called names 
+
+```{r Data}
+data <- "555-1239Moe Szyslak(636) 555-0113Burns, C. Montgomery555-6542Rev. Timothy Lovejoy555 8904Ned Flanders636-555-3226Simpson, Homer5553642Dr. Julius Hibbert"
+ 
+names <- unlist(str_extract_all(data, "[[:alpha:]., ]{2,}"))
+
+names
+```
+
+## Question 3
+
+Copy the introductory example. The vector *names* stores the extracted names.
+
+a) Use the tools of this chapter to rearrange the vector so that all elements conform to the standard *first_name last_name*.
+
+```{r (3.a)}
+# utilize grepl function to test for camma
+# g
+#loop for the length of the vector 
+for(i in 1:length(names)){
+  #find if any of the name vector string have a comma    
+  if(grepl(',',names[[i]])==TRUE){
+    #split the String into two strings using the comma as separator
+    get_str=unlist(str_split(names[[i]],","))
+    #Swap the two string; then, join them into one string with    one-character space in between 
+    names[[i]]=str_c(get_str[2]," ",get_str[1])
+  }
+}
+
+names
+```
+
+b) Construct a logical vector indicating whether a character has a title (i.e., Rev. and Dr.).
+
+The grepl function will be used to indicate whether character has a title.
+
+```{r (3.b)}
+
+# utilize grepl function to logically detect Rev. OR Dr.
+title <-grepl("Rev.|Dr.",names)
+#create the logical vector 
+names_title <- data.frame(names,title)
+names_title
+```
+
+c) Construct a logical vector indicating whether a character has a second name.
+
+
+```{r (3.c)}
+mid_name <- str_detect(names,"[[:upper:]]\\.")
+#create the logical vector
+name.mid_name <- data.frame(names,mid_name)
+name.mid_name
+```
+
+## Question 4
+
+Describe the types of strings that conform to the following regular expressions and
+construct an example that is matched by the regular expression.
+
+a. [0-9]+\\$
+
+It could be conformed as an alphanumeric. The pattern implies a query to extracting all numbers that end with character $
+
+```{r (4.a)}
+mystring <- "the cost of two t-shirt is 50$"
+
+str_extract(mystring, "[0-9]+\\$")
+
+```
+
+b. \\b[a-z]{1,4}\\b
+
+It conforms to a lower alphabetic string. The pattern detects a one word that have 1 to 4 lower case characters within a string.
+
+```{r (4.b)}
+mystring=c("can","fatime","of","F","f","wxsvyz","with","abc popo 12c","d12c")
+str_extract(mystring,"\\b[a-z]{1,4}\\b")
+str_detect(mystring,"\\b[a-z]{1,4}\\b")
+```
+
+C. .*?\\.txt$
+
+It conforms to graphical string. The pattern detects any string that end with .txt and the string it contain only the .txt file name. 
+
+```{r (4.c)}
+
+mystring=c("ali.txt","123&.txt"," the file has a.txt extension"," names.txt","alex.ipt")
+str_extract(mystring,".*?\\.txt$")
+str_detect(mystring,".*?\\.txt$")
+
+```
+
+d. \\d{2}/\\d{2}/\\d{4}
+
+It conforms to numbers and punctuation string. The pattern detects any string that have the format of dd/mm/yyyy
+
+```{r (4.d)}
+
+mystring <- c("02/15/2000","02-15-2000","born in 02/15/1975")
+str_extract(mystring,"\\d{2}/\\d{2}/\\d{4}")
+str_detect(mystring,"\\d{2}/\\d{2}/\\d{4}")
+
+```
+
+e. <(.+?)>.+?</\\1>
+
+It conforms to graphical string or tag format string. The pattern detects and identifies any three different fields within the string that have the html tag format
+
+```{r (4.e)}
+
+mystring <- c("<html> Alex </html>","<xyz> some text</xyz>"," abc <xyz> some text</xyz>")
+str_extract(mystring,"<(.+?)>.+?</\\1>")
+str_detect(mystring,"<(.+?)>.+?</\\1>")
+
+```
+
+## Question 9
+
+The following code hides a secret message. Crack it with R and regular expressions.Hint: Some of the characters are more revealing than others! The code snippet is also available in the materials at www.r-datacollection.com.
+
+clcopCow1zmstc0d87wnkig7OvdicpNuggvhryn92Gjuwczi8hqrfpRxs5Aj5dwpn0Tanwo
+Uwisdij7Lj8kpf03AT5Idr3coc0bt7yczjatOaootj55t3Nj3ne6c4Sfek.r1w1YwwojigO
+d6vrfUrbz2.2bkAnbhzgv4R9i05zEcrop.wAgnb.SqoU65fPa1otfb7wEm24k6t3sR9zqe5
+fy89n6Nd5t9kc4fE905gmc4Rgxo5nhDk!gr
+
+There are many approaches and much simpler than the one I have to find the secret, but I choose my own solution.
+
+```{r (9)}
+mystring <-"clcopCow1zmstc0d87wnkig7OvdicpNuggvhryn92Gjuwczi8hqrfpRxs5Aj5dwpn0TanwoUwisdij7Lj8kpf03AT5Idr3coc0bt7yczjatOaootj55t3Nj3ne6c4Sfek.r1w1YwwojigOd6vrfUrbz2.2bkAnbhzgv4R9i05zEcrop.wAgnb.SqoU65fPa1otfb7wEm24k6t3sR9zqe5fy89n6Nd5t9kc4fE905gmc4Rgxo5nhDk!gr"
+
+split_mystring=unlist(str_split(mystring,"\\."))
+
+secret_message=""
+
+for(i in 1:length(split_mystring)){
+  
+    get_secret_words<-unlist(str_extract_all(split_mystring[i], "[:upper:]"))
+    
+    get_secret_char=""
+    for(j in 1: length(get_secret_words))
+        {
+          get_secret_char <- str_c(get_secret_char,get_secret_words[j])
+    }
+    
+    secret_message <- str_c(secret_message," ", get_secret_char)
+}
+
+secret_message 
+```
+
+
