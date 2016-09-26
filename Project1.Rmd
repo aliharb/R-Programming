@@ -1,0 +1,195 @@
+---
+title: "Project1"
+author: "Ali Harb"
+date: "September 25, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction 
+
+The objective of this project is to imported data from text file into r, manipulate the data, and export the result into an csv file format, using the chess tournament results data set.
+
+The exported file must contain the following information for every giving player: 
+
+* Player's Name
+* Player's State
+* Total Number of Points
+* Player's Pre-Rating
+* Average Pre Chess Rating of Opponents.
+
+## Load Required Libraries
+
+To achieve the task, the string library is needed to manipulate strings and convert them into different data types. 
+
+```{r}
+library(stringr)
+```
+
+## Load Data
+
+Loading the data to R environment. Data can be obtained from [GitHub](https://raw.githubusercontent.com/aliharb/R-Programming/master/tournamentinfo.txt).
+
+```{r}
+rawdata_tb <- read.table("https://raw.githubusercontent.com/aliharb/R-Programming/master/tournamentinfo.txt", header=FALSE, sep="\n")
+
+head(rawdata_tb)
+tail(rawdata_tb)
+```
+
+## Data Manipulation 
+
+The table above revealed some useful pattern information:
+
+* Players information are provided with double raw that are repeated sequentially and separated by dashed-line row.
+    + The first row is the dashed-line.
+    + The second row is first line of player's information. 
+    + The third row is second line of player's information.
+
+As shown, the same type of information are repeated every n+3.
+
+Through the rest of this document data will be extracted and manipulated based on the on the obove observation. 
+
+
+#### step 1. 
+
+The first three rows of the table are informational provide columns descriptions that not needed in addition to dashed-line, thus is going to be eliminated.
+
+```{r}
+data_tb <- rawdata_tb[-c(1:3),]
+head(data_tb)
+```
+
+#### step 2. 
+
+The dashed-line must be eliminated and similar data must be grouped into two separated lists to facilitate data string manipulation using expressions. Thus, two new variables will be created, the _firstrows_ and the _secondrows_.
+
+```{r}
+# get the length of the data
+l=length(data_tb)
+
+# start at row 2 and offset by 3 rows to the length of the data 'l'
+firstrows <- data_tb[seq(2, l, 3)]
+# start at row 3 and offset by 3 rows to the length of the data 'l'
+secondrows <- data_tb[seq(3, l, 3)]
+
+head(firstrows)
+head(secondrows)
+
+```
+
+#### step 3. 
+
+The names, scores, and opponents can be extracted from the _firstrows_.
+
+```{r}
+# extract all words more than two letters, separated by space, up to 3 three words, and then trim to a new string.
+names <- str_trim(str_extract(firstrows, "(\\w+\\s){2,3}"))
+
+# extract all numbers that separated by a dot and parse result to double. 
+scores <- as.double(unlist(str_extract_all(firstrows, "[:digit:][.][:digit:]")))
+
+# extract all numbers that followed by |  
+opponentstemp <- str_extract_all(firstrows, "[:digit:]+?\\|")
+
+# extract all numbers 
+opponents <- str_extract_all(opponentstemp,"\\d+")
+
+head(names)
+head(scores)
+head(opponents)
+```
+
+#### step 4. 
+
+The sates and prerating can be extracted from the _Secondrows_.
+
+```{r}
+
+# extract all character strings
+states <- str_extract(secondrows, "\\w+")
+
+# extract all string that have a length of 4 digits and surrounded by non-numbers 
+preratingtemp <- str_extract(secondrows, "[^[:digit:]][:digit:]{1,4}[^[:digit:]]")
+
+# extract all numbers and parse them to integers  
+prerating <- as.integer(str_extract(preratingtemp,"\\d+"))
+
+head(states)
+head(prerating)
+
+```
+
+#### step 5. 
+
+Get the average rating of every player.
+
+```{r}
+
+avg_preRating=0
+
+# loop to get the mean value of every opponent.  
+for (i in 1:length(names)) {
+  # get the mean rating of every player based on games played 
+  avg_preRating[i] <- mean(prerating[as.numeric(unlist(opponents[i]))])
+  # add .5 for rounding up 
+  avg_preRating[i] <- avg_preRating[i]+0.5
+}
+
+# parse to integers 
+avg_preRating<-as.integer(avg_preRating)
+
+head(avg_preRating)
+```
+
+#### step 6. 
+
+Compose all vectors generated into a single data frame 
+
+```{r}
+data <- data.frame(names,states,scores,prerating,avg_preRating)
+```
+
+#### step 7. 
+
+Convert the data frame into a csv file
+
+```{r}
+write.table(data, file = "Ali_Harb_Project1.csv", sep = ",", col.names = T)
+
+
+Read_csv <- read.csv( "Ali_Harb_Project1.csv")
+
+head(Read_csv)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
