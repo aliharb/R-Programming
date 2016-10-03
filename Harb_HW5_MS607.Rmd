@@ -1,0 +1,154 @@
+---
+title: "HW Week 5"
+author: "Ali Harb"
+date: "October 2, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction 
+The objective of this assignment is to practice tidying and transforming data using R studio or MySQL.  
+
+## Software Requirement
+To perform the task various libraries are needed for data transformation and visualization.
+
+
+```{r message=FALSE}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+```
+
+## Loading Data
+A csv file of the data must be created and imported into R for analytical processing.
+
+```{r}
+
+flight_timedelay= data.frame( 
+  airlines = c('alaska', 'alaska','am_West','am_West'),
+  status = c('on_time', 'delayed', 'on_time','delayed'),
+  losAngeles = c(497,62,694,117),
+  phoenix = c(221,12,4840,415),
+  sanDiego = c(212,20,383,65),
+  sanFrancisco = c(503,102,320,129),
+  seattle = c(1841,305,201,61)
+)
+
+write.table(flight_timedelay, file = "flight_timedelay.csv", sep = ",", col.names=T)
+
+airlines_tb <-data.frame(read.csv("https://raw.githubusercontent.com/aliharb/R-Programming/master/flight_timedelay.csv"))
+
+airlines_tb
+str(airlines_tb)
+
+```
+
+## Data Analysis 
+
+Based on the data provided, analysis will be performed to find the following:
+
+* The Best airline performance 
+* Airport with least delay
+
+1. transform the data to group based on delays and ontime arrival.
+
+```{r}
+
+delays_ontime<-filter(airlines_tb,status=="on_time")
+ontimes_tb<-gather(delays_ontime,'airports','flights',3:7)
+
+cols_delay<-filter(airlines_tb,status=="delayed")
+delay_tb<-gather(cols_delay,'airports','flights',3:7)
+
+tb<-bind_rows(ontimes_tb,delay_tb)
+tb
+```
+
+Plot on time arrivals for both airlines 
+
+```{r}
+ggplot(ontimes_tb,aes(x=airports, y=flights)) +
+  geom_bar(stat="identity",fill="green", colour="black") +
+  facet_wrap(~ airlines) +
+  labs(title="Comparison of Arrival On Time", x="Airports", y="On time")
+```
+
+Plot delays arrivals for both airlines  
+
+```{r}
+ggplot(delay_tb,aes(x=airports, y=flights)) +
+  geom_bar(stat="identity",fill="red", colour="black") +
+  facet_wrap(~ airlines) +
+  labs(title="Comparison of Arrival Delayed", x="airports", y="Delayed")
+```
+
+From the above graphs we can determine the following:
+
+* Am west has more airline traffic 
+* Phoenix airport has the highest arrival flights 
+
+Even though the graphs highlight important information about the data set but they didn't show any evidence about airlines and airport performance  
+
+2. at first, the proportionality and percentile of ever evry flights arrivals will compared.
+
+```{r set-options, echo=FALSE, cache=FALSE}
+options(width=100)
+delays_ontime<-spread(tb,status,flights)
+delays_ontime<-mutate(delays_ontime,total_flights=delayed+on_time)
+
+delays_ontime<-mutate(delays_ontime,delay_proportional=delayed/total_flights)
+delays_ontime<-mutate(delays_ontime,delay_percentile=delay_proportional*100)
+delays_ontime
+
+airport_performance<-delays_ontime %>%
+group_by(airports) %>% 
+summarise(airport_delays = sum(delayed), airport_flights=sum(total_flights),airport_proportional=(airport_delays/airport_flights)*100)
+```
+
+
+```{r}
+ggplot(airport_performance,aes(x=airports, y=airport_proportional)) +
+  geom_bar(stat="identity",fill="blue", colour="black") +
+  labs(title="Comparison of Airpot performance", x="airports", y="percentile")
+```
+
+The graph indicates that, Phoenix airport has the best performance with the lowest delay less than 8% delays.
+
+```{r}
+airlines_status<-tb%>%group_by(airlines, status) %>% 
+  summarise(flights = sum(flights))
+airlines_performance<-spread(airlines_status,status,flights)
+airlines_performance<-mutate(airlines_performance,Proportion = delayed / (on_time+delayed)) 
+airlines_performance<-mutate(airlines_performance,percentile = Proportion*100) 
+airlines_performance
+```
+
+```{r}
+ggplot(airlines_performance,aes(x=airlines, y=percentile)) +
+  geom_bar(stat="identity",fill="yellow", colour="black") +
+  labs(title="Comparison of Airlines Delayed", x="airlines", y="percentile")
+```
+
+
+Based on the graph, the am west airline has a better performance with less than 11% delays.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
