@@ -1,0 +1,321 @@
+---
+title: "Project2"
+author: "Ali Harb"
+date: "October 9, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+The objective of this project is to practice data cleaning by tidying and transforming data using tidyr package. In this project three different data must be utilized and analyzed.
+
+##Load Required Libraries
+
+To achieve the task, many libraries are needed to load data from html, manipulate strings and convert them into different data types, clean data, and load and convert data to csv files.
+
+```{r message=FALSE}
+
+library(tidyr)
+library(stats)
+library(base)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(gridExtra)
+library(magrittr)
+library(bitops)
+library(htmltab)
+library(xml2)
+library(rvest)
+library(date)
+library(lubridate)
+```
+
+## First Part
+
+An Arduino Nano amazon consumer review will be chosen for the first part. The data will be imported from html page into r to perform cleaning and tidying then exported into an csv file. Data will be brought again into r for data analysis.
+
+Link: [Amazon Page](https://www.amazon.com/OSOYOO-ATMEGA328P-Module-Micro-controller-Arduino/product-reviews/B00UACD13Q/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&showViewpoints=1&sortBy=helpful&reviewerType=all_reviews&pageNumber=1)
+
+Get data: 
+
+```{r }
+nano.html <- read_html("https://www.amazon.com/OSOYOO-ATMEGA328P-Module-Micro-controller-Arduino/product-reviews/B00UACD13Q/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&showViewpoints=1&sortBy=helpful&reviewerType=all_reviews&pageNumber=1", encoding = "UTF-8")
+```
+
+
+Get titles: 
+
+```{r}
+titles <- html_nodes(nano.html, ".a-color-base.a-text-bold")
+titles <- html_text(titles)
+titles
+```
+
+Get authors:
+
+```{r}
+authors <- html_nodes(nano.html, ".author")
+authors <- html_text(authors)
+authors
+```
+
+Get date:
+
+```{r}
+date <- html_nodes(nano.html, "#cm_cr-review_list .review-date")
+date <- html_text(date)
+date <- as.Date(mdy(gsub("on"," ", date)))
+date
+```
+
+Get rate:
+
+```{r}
+rank <- html_nodes(nano.html, "#cm_cr-review_list .review-rating")
+rank <- html_text(rank)
+rank <- as.numeric(gsub(" out of 5 stars", "", rank))
+rank
+```
+
+Get reviews messages:
+
+```{r}
+review_scrript <- html_nodes(nano.html, ".review-data+ .review-data")
+review_scrript <- html_text(review_scrript)
+str_trunc(strsplit(review_scrript,"   "),50, "right", ellipsis = " ....")
+```
+
+Put all extracted data into fata frame 
+
+```{r set-options}
+options(width=100)
+reviews_df<-data.frame(date, authors, titles, rank, stringsAsFactors = FALSE)
+reviews_df
+```
+
+Export data to csv file format 
+
+```{r}
+options(width=100)
+write.table(reviews_df, file = "arduino_nano.csv", sep = ",", col.names=T)
+Read_csv <- read.csv( "arduino_nano.csv")
+Read_csv
+```
+
+Get data from getHub
+
+```{r}
+nanocsv <- data.frame(read.csv("https://raw.githubusercontent.com/aliharb/R-Programming/1b26e012c98c801629d9944614feb842eb5cb216/arduino_nano.csv"))
+str(nanocsv)
+```
+
+As shown, the header of the data is shifted and a column is being added. Thus they need to be corrected. 
+
+Subset the columns into new data frame:
+
+```{r}
+nano_tb<-select(nanocsv,authors,titles,rank,X)
+```
+
+Rename the Variables:
+
+```{r}
+nano_tb <- plyr::rename(nano_tb, c("authors" = "date", "titles" = "authors", "rank" = "titles", "X" = "rank"))
+```
+
+Convert data to table:
+
+```{r}
+tbl_df(nano_tb)
+glimpse(nano_tb)
+```
+
+## First Part Analysis 
+
+Plot the data using bar ggplot
+
+```{r}
+ggplot(nano_tb, aes(rank)) + 
+  geom_bar(fill="blue", colour="black")
+```
+
+```{r}
+nanomean <- mean(nano_tb$rank)
+nanomean
+nanosd <- sd(nano_tb$rank)
+nanosd
+nanovar <- var(nano_tb$rank)
+nanovar
+```
+
+The bar graph shows 7 of the reviews were 5 stars and 2 were, 3 stars, and 1 is one star.
+
+Based on the mean of 4.2, the result reflects the chart distribution were most data fall into 5 stars. But the result of standard deviation and the variance indicates that the distribution varies greatly between reviews.
+
+## Second Part
+
+For part two the babyname dataset will be used to perform tidying and transformation.
+
+link:[babynames data](https://raw.githubusercontent.com/hadley/data-baby-names/master/baby-names.csv) ; [DOC](https://www.ssa.gov/oact/babynames/limits.html)
+
+Get data: 
+```{r}
+babynames <- data.frame(read.csv("https://raw.githubusercontent.com/hadley/data-baby-names/master/baby-names.csv"))
+```
+
+Look into the imported data
+
+```{r}
+str(babynames)
+head(babynames)
+tail(babynames)
+```
+
+## Second Part Analysis
+
+Find the most popular names 
+
+```{r}
+most_popular_names <- babynames %>%
+  group_by(sex, name) %>%
+  summarize(total = sum(percent)) %>%
+  arrange(desc(total)) %$%
+  split(., sex) 
+  most_popular_names
+```
+
+Visualize the distribution of some popular names
+
+```{r}
+g1 <- babynames %>%
+  filter(name=="Barbara") %$% 
+  ggplot(., aes(year,percent)) +
+  geom_line(aes(color=sex), lwd=1) +
+  scale_color_manual(values = c("firebrick1", "dodgerblue")) +
+  theme_bw() +
+  ggtitle("Barbara")
+
+g2 <- babynames %>%
+  filter(name=="John") %$% 
+  ggplot(., aes(year,percent)) +
+  geom_line(aes(color=sex), lwd=1) +
+  scale_color_manual(values = c("firebrick1", "dodgerblue")) +
+  theme_bw() +
+  ggtitle("John")
+
+g3 <- babynames %>%
+  filter(name=="Charles") %$% 
+  ggplot(., aes(year,percent)) +
+  geom_line(aes(color=sex), lwd=1) +
+  scale_color_manual(values = c("firebrick1", "dodgerblue")) +
+  theme_bw() +
+  ggtitle("Charles")
+
+g4 <- babynames %>%
+  filter(name=="Jennifer") %$% 
+  ggplot(., aes(year,percent)) +
+  geom_line(aes(color=sex), lwd=1) +
+  scale_color_manual(values = c("firebrick1", "dodgerblue")) +
+  theme_bw() +
+  ggtitle("Jennifer")
+
+grid.arrange(g1,g2,g3,g4,ncol=2)
+```
+
+Even though some of these names are the most popular, the graph shows that these names are declining as years get close to present time, such as John and Charles. It also shows that some of these name become popular at the forties, such as Barbara, and seventies, such as Jennifer then decline afterword.
+
+## Third part 
+
+The mtcar dataset will be utilized to perform data analysis and transformation 
+
+Links: [mtcar data](https://raw.githubusercontent.com/aliharb/R-Programming/6a7424e677c38c58adc598e5b53812edb2a808a5/mtcars.csv) ; 
+[doc](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/mtcars.html)
+
+Get Data:
+
+```{r}
+carsSpecs <- data.frame(read.csv("https://raw.githubusercontent.com/aliharb/R-Programming/6a7424e677c38c58adc598e5b53812edb2a808a5/mtcars.csv"))
+```
+
+look into the data set
+
+```{r}
+str(carsSpecs)
+head(carsSpecs)
+tail(carsSpecs)
+```
+
+## Third Part Analysis
+
+Analyze the effect of automatic and manual on gas mileage
+
+subset data:
+
+```{r}
+manual<- carsSpecs %>%
+  filter(am==1)
+head(manual)
+auto <- carsSpecs%>%
+  filter(am==0)
+head(auto)
+```
+
+Find the means and Standard deviation of:
+
+Manual:
+```{r}
+manualmean<-summarise(manual,mean(manual$mpg))
+manualmean
+
+
+manualsd<-summarise(manual,sd(manual$mpg))
+manualsd
+```
+
+Automatic:
+```{r}
+automean<-summarise(auto,mean(auto$mpg))
+automean
+
+autosd<-summarise(auto, sd(auto$mpg))
+autosd
+```
+
+Get the percentage increase of the mileage based on the means 
+
+```{r}
+(manualmean-automean)/automean
+```
+
+plot the distribution 
+
+```{r}
+ggplot(manual, aes(manual$mpg)) + 
+  geom_histogram(aes(y=..density..),binwidth=4,colour="black", fill="white")+
+  geom_density(alpha=.2, fill="#FF6666")+
+  geom_vline(xintercept = as.numeric(manualmean))+
+  geom_vline(xintercept = as.numeric(manualmean), linetype="dotted", color = "blue", size=1.5)
+
+ggplot(auto, aes(auto$mpg)) + 
+  geom_histogram(aes(y=..density..),binwidth=3,colour="black", fill="white")+
+  geom_density(alpha=.2, fill="#FF6666")+
+  geom_vline(xintercept = as.numeric(automean))+
+  geom_vline(xintercept = as.numeric(automean), linetype="dotted", color = "blue", size=1.5)
+```
+
+Based on the results, the mean of the manual transmission cars is greater than the automated. It also has the highest variance. 
+
+
+
+
+
+
+
+
+
+
+
