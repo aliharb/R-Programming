@@ -5,9 +5,9 @@
 		"Gary Johnson", 
 		"Richard Jenningz"
                ],
-"Publisher" :"McGraw-Hill Education",
+"Publisher" :"McGraw Hill Education",
 "Year": 2006
-	}
+	},
 	{
 "Title": "MATLAB Simulink Stateflow",
 "Authors": [
@@ -16,7 +16,7 @@
 		"Martin Rau", 
 		"Ulrich Wohlfarth"
                ],
-"Publisher" :"Jared P. Lande",
+"Publisher" :"Jared P Lande",
 "Year": 2009
 	},
 	{
@@ -24,7 +24,7 @@
 "Authors": [
 		"Godfrey Onwubolu"
                ],
-"Publisher" :"Butterworth-Heinemann",
+"Publisher" :"Butterworth Heinemann",
 "Year": 2005
 	}]
 }
