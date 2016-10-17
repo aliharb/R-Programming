@@ -1,4 +1,4 @@
-{"Books.json":[
+{"Booksjson":[
 	{
 "Title": "LabVIEW Graphical Programming",
 "Authors": [
@@ -6,7 +6,7 @@
 		"Richard Jenningz"
                ],
 "Publisher" :"McGraw-Hill Education",
-"Year": 10/7/2006
+"Year": 2006
 	}
 	{
 "Title": "MATLAB - Simulink - Stateflow",
@@ -17,7 +17,7 @@
 		"Ulrich Wohlfarth"
                ],
 "Publisher" :"Jared P. Lande",
-"Year": 01/01/2009
+"Year": 2009
 	},
 	{
 "Title": "Mechatronics: Principles and Applications",
@@ -25,6 +25,6 @@
 		"Godfrey Onwubolu"
                ],
 "Publisher" :"Butterworth-Heinemann",
-"Year": 05/25/2005"
+"Year": 2005
 	}]
 }
