@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BooksXML>
+<book>
+<title>LabVIEW Graphical Programming</title>
+<author>Gary Johnson, Richard Jenningz</author>
+<publisher>McGraw Hill Education</publisher>
+<year>2006</year>
+</book>
+<book>
+<title>MATLAB Simulink Stateflow</title>
+<author>Anne Angermann, Michael Beuschel, Martin Rau, Ulrich Wohlfarth</author>
+<publisher>Oldenbourg Verlag</publisher>
+<year>2009</year>
+</book>
+<book>
+<title>Mechatronics Principles and Applications</title>
+<author>Godfrey Onwubolu</author>
+<publisher>Butterworth Heinemann</publisher>
+<year>2005</year>
+</book>
+</fbooks> 
