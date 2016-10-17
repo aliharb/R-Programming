@@ -1,0 +1,81 @@
+---
+title: "Week 7"
+author: "Ali Harb"
+date: "October 16, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Intoduction 
+
+Pick three of your favorite books on one of your favorite subjects. At least one of the books should have more than one author. For each book, include the title, authors, and two or three other attributes that you find interesting.
+
+Take the information that you've selected about these three books, and separately create three files which store the book's information in HTML (using an html table), XML, and JSON formats (e.g. "books.html", "books.xml", and "books.json"). To help you better understand the different file structures, I'd prefer that you create each of these files "by hand" unless you're already very comfortable with the file formats.
+
+Write R code, using your packages of choice, to load the information from each of the three sources into separate R data frames. Are the three data frames identical?
+
+Your deliverable is the three source files and the R code. If you can, package your assignment solution up into an .Rmd file and publish to rpubs.com. [This will also require finding a way to make your three text files accessible from the web]
+
+## Load packages 
+
+load required libraries to perform the lab task 
+
+```{r message=FALSE}
+library(XML)
+library(RCurl)
+library(htmltab)
+library(rvest)
+library(jsonlite)
+library(data.table)
+library(plyr)
+library('knitr')
+```
+
+## HTML Data
+
+Get the html file and load data into dataframe 
+
+[HTML Books File Link](https://raw.githubusercontent.com/aliharb/R-Programming/master/books.html)
+
+```{r }
+urlhtml <-"https://raw.githubusercontent.com/aliharb/R-Programming/master/books.html"
+html <- getURL(urlhtml)
+bookshtml <- readHTMLTable(html, header = TRUE)
+bookshtmldf <- data.frame(bookshtml)
+colnames(bookshtmldf) <- c("Title","Authors","Publisher","Year")
+kable(head(bookshtmldf[,1:4]), format = "markdown")
+```
+
+## json Data
+
+Get the json file and load data into R 
+
+[json Books File link](https://raw.githubusercontent.com/aliharb/R-Programming/master/Books.json)
+
+```{r }
+urljson <-"https://raw.githubusercontent.com/aliharb/R-Programming/master/Books.json"
+json<-getURL(urljson)
+booksjson<-fromJSON(json)
+booksjsondf <- do.call("rbind.fill", lapply(booksjson, as.data.frame))
+kable(head(bookshtmldf[,1:4]), format = "markdown")
+```
+
+## XML Data
+
+get the xml file and load data into dataframe
+
+[XML Books File link](https://raw.githubusercontent.com/aliharb/R-Programming/master/books.xml)
+
+```{r}
+urlxml <- "https://raw.githubusercontent.com/aliharb/R-Programming/master/books.xml"
+xml <- getURL(urlxml)
+booksxml <- xmlParse(xml)
+booksxmldf = xmlToDataFrame(booksxml)
+colnames(booksxmldf) <- c("Title","Authors","Publisher","Year")
+kable(head(booksxmldf[,1:4]), format = "markdown")
+```
+
+> Even though we get the data using different packages from different files type. But, when these data are loaded into data frames they become identical. 
