@@ -1,0 +1,104 @@
+---
+title: "Week9"
+author: "Ali Harb"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Introduction 
+
+The objective of this assignment is to use the New Times Search Article web API to manipulate an retrieve json data. 
+
+## Libraries
+
+To perform this tas, the jsonlite and Knitr libraries are going to be used for this assignment
+
+```{r }
+library(jsonlite)
+library(knitr,quietly = T)
+```
+
+## Get Data
+
+First a key is needed to perform the scraping from the New York Time API. The key will be added to html link to retrieve desire data from articles. Finally, the data will be converted into r data frame.
+
+```{r }
+article_key <- "&api-key=b75da00e12d54774a2d362adddcc9bef"
+url <- "http://api.nytimes.com/svc/search/v2/articlesearch.json?q=LEBANON"
+req <- fromJSON(paste0(url, article_key))
+articles <- req$response$docs
+colnames(articles)
+```
+
+
+## Cleaning Data
+
+The data frame has some vector elements that contain nested lists in addition to some redundant information. Also, some cleaning is formatting is needed to get the data into good shape.
+
+```{r}
+
+mainheadline<-articles$headline$main
+date <-as.Date(articles$pub_date)
+pages<-articles$print_page
+
+keyvalue=NULL
+for(i in 1:length(articles$keywords))
+{
+   tmp<-articles$keywords[[i]]$value
+   keyvalue[i]<-gsub(", ",", ",toString(tmp))
+}
+
+role=NULL
+for(i in 1:length(articles$keywords))
+{
+  tmp<-articles$byline$person[[i]]$role 
+  role[i]<-gsub(", ",", ",toString(tmp))
+}
+
+reporter=NULL
+for(i in 1:length(articles$keywords))
+{
+  tmp1<-articles$byline$person[[i]]$firstname
+  tpm2<-articles$byline$person[[i]]$lastname
+  tmp<-paste(tmp1, tpm2, sep=" ")
+  reporter[i]<-gsub(", ",", ",toString(tmp))
+}
+
+```
+
+## Data Frame 
+
+Reconstructing the subset cleaned data into data frame.
+
+```{r}
+
+
+articlesdfsource<-data.frame(date,pages,role,reporter,articles$news_desk,articles$subsection_name,articles$section_name,articles$source,articles$document_type,articles$type_of_material)
+
+names(articlesdfsource) <- c("date","pages","role","reporter","news_desk",
+                             "subsection_name","section_name","source",
+                             "document_type","type_of_material")
+
+#colnames(articlesdfsource)
+kable(articlesdfsource)
+
+articleinfo <- data.frame(mainheadline,keyvalue,articles$snippet,articles$lead_paragraph)
+names(articleinfo) <- c("Main_headline","keywords_value","snippet","lead_paragraph")
+colnames(articleinfo)
+kable(articleinfo)
+
+articlesdf<-data.frame(date,pages,mainheadline,keyvalue,role,reporter,articles$news_desk, articles$subsection_name,articles$section_name,articles$source,articles$snippet,articles$document_type,articles$type_of_material,articles$lead_paragraph)
+
+names(articlesdf) <- c("date","pages","Main_headline","keywords_value","role","reporter","news_desk",
+               "subsection_name","section_name","source","snippet",
+               "document_type","type_of_material","lead_paragraph")
+
+colnames(articlesdf)
+```
+
+## Conclusion 
+
+Even though there are libraries that help facilitate scraping, still some work have to be done such as formatting and cleaning. 
+
