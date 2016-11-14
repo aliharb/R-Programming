@@ -1,0 +1,217 @@
+---
+title: "week10"
+author: "Ali Harb"
+date: "November 9, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction 
+
+
+The objective of this assignment is to work with sentiments using spam/ham dataset to train and transform data into corpus where can be analyzed using r programming.
+
+
+## Libraries
+
+To perform this assignment the following library are needed for cleaning, analyzing and data visualision of sentiment.
+
+```{r message=FALSE, warning=FALSE}
+
+library(tm)
+library(knitr)
+library(plyr)
+library(wordcloud)
+
+```
+
+## Import Data 
+
+Select the desire parameter and boundaries to imported data
+
+```{r message=FALSE, warning=FALSE}
+# load file intto r 
+# load 50 files 
+n_files <- 50
+
+# define the table row to didplay 
+n_rows <- 10
+
+# Define how many variable to analyze  
+n_terms <- 999
+```
+
+Create a function to import texts data into r from desire directory  
+
+```{r message=FALSE, warning=FALSE}
+
+# get the Text given the directory
+get_texts <- function(dir){
+  contents <- c()
+  files <- list.files(path=dir, full.names = TRUE)
+  head(files)
+  i <- 0
+  for (cur_file in files){
+    if(i < n_files){
+      content <- readLines(cur_file)
+      contents <- c(contents, content)
+      i <- (i+1)
+    }
+  }
+  texts <- Corpus(VectorSource(contents))
+  return (texts)
+}
+
+```
+
+Import the text into r environment  
+
+```{r message=FALSE, warning=FALSE}
+# Get the Ham Texts:
+ham_texts <- get_texts("C:/Users/Ali/Desktop/lab/easy_ham/")
+length(ham_texts)
+
+# Get the Spam Texts:
+spam_texts <- get_texts("C:/Users/Ali/Desktop/lab/spam_2/")
+length(spam_texts)
+```
+
+## Transforming Data  
+
+Apply filtering and formatting data using a list parameters
+
+```{r message=FALSE, warning=FALSE}
+# general filtering:
+trm <- list(removePunctuation=TRUE, removeNumbers=TRUE, stripWhitespace=TRUE, tolower=TRUE, stopwords=TRUE, minWordLength = 2)
+
+# Basic data filtering and formatting 
+ham_trm <- TermDocumentMatrix(ham_texts,control=trm)
+ham_trm
+
+spam_trm <- TermDocumentMatrix(spam_texts,control=trm)
+spam_trm
+```
+
+Turn the result into r data frame, perform cleaning, rename columns, format data types, and display the results in tables.
+
+```{r message=FALSE, warning=FALSE}
+# get the spam 
+
+spamdata <- as.data.frame(as.table(spam_trm))
+spamdata$spam_ham <- "SPAM"
+colnames(spamdata) <- c('TERM', 'SPAM_DOCS', 'SPAM_FREQ', 'TYPE_SPAM')
+spamdata <- subset(spamdata, select = -c(2) )
+spamdata$SPAM_FREQ[is.na(spamdata$SPAM_FREQ)] <- '0'
+spamdata <- ddply(spamdata, .(TERM, TYPE_SPAM), summarize, SPAM_FREQ = sum(as.numeric(SPAM_FREQ)))
+
+# display spam data in table
+kable(head(spamdata, n = n_rows))
+
+
+spamdatacount <- nrow(spamdata)
+spamdatacount
+
+# get the ham
+
+
+hamdata <- as.data.frame(as.table(ham_trm))
+hamdata$spam_ham <- "HAM"
+colnames(hamdata) <- c('TERM', 'HAM_DOCS', 'HAM_FREQ', 'TYPE_HAM')
+hamdata <- subset(hamdata, select = -c(2) )
+hamdata$HAM_FREQ[is.na(hamdata$HAM_FREQ)] <- '0'
+hamdata <- ddply(hamdata, .(TERM, TYPE_HAM), summarize, HAM_FREQ = sum(as.numeric(HAM_FREQ)))
+
+# display ham data in table
+
+kable(head(hamdata, n = n_rows))
+
+hamdatacount <- nrow(hamdata)
+hamdatacount
+
+# merge ham and spam into one data frame
+
+ham_spam_df <- merge(x = hamdata, y = spamdata, by="TERM", all = TRUE)
+
+# change na into zero or define text  
+
+ham_spam_df$SPAM_FREQ[is.na(ham_spam_df$SPAM_FREQ)] <- '0'
+ham_spam_df$TYPE_SPAM[is.na(ham_spam_df$TYPE_SPAM)] <- 'SPAM'
+ham_spam_df$HAM_FREQ[is.na(ham_spam_df$HAM_FREQ)] <- '0'
+ham_spam_df$TYPE_HAM[is.na(ham_spam_df$TYPE_HAM)] <- 'HAM'
+ham_spam_df[is.na(ham_spam_df)] <- '0'
+
+# sort the data frame by HAM_FREQ desc
+
+ham_spam_df$SPAM_WEIGHT <- as.numeric(ham_spam_df$SPAM_FREQ) - as.numeric(ham_spam_df$HAM_FREQ)
+kable(head(ham_spam_df[order(-as.numeric(ham_spam_df$HAM_FREQ)), ], n=n_rows))
+kable(head(ham_spam_df[order(-as.numeric(ham_spam_df$SPAM_FREQ)), ], n=n_rows))
+
+
+```
+
+## Visualization 
+
+Create a cloud chart of the ham and spam.
+
+```{r message=FALSE, warning=FALSE}
+
+# ham
+wordcloud(ham_texts, max.words = 200, random.order = FALSE, colors=c('blue'))
+
+#spam
+wordcloud(spam_texts, max.words = 200, random.order = FALSE, colors=c('red'))
+
+```
+
+## Calculation 
+
+Create a function to calculate the means of the spam.
+
+```{r message=FALSE, warning=FALSE}
+# Function to calculate the spam score (positive means more likely to be spam.):
+getspam_score <- function(datapath){
+  content <- readLines(datapath)
+  a_string <- paste(content, collapse = ' ')
+  wordlist <- strsplit(a_string, "\\W+")
+  word_df <- as.data.frame(wordlist)
+  colnames(word_df) <- c("WORD")
+  word_df$WORD <- tolower(word_df$WORD)
+  
+  tscore <- sum(ham_spam_df$SPAM_WEIGHT[word_df$WORD == ham_spam_df$TERM])
+
+  print(tscore)
+}
+
+```
+
+Get the score of some spam
+
+```{r message=FALSE, warning=FALSE}
+# test with ham 
+
+getspam_score("C:/Users/Ali/Desktop/lab/easy_ham/0044.f1db2c76854ee58bc73d0c85ca6a86d2")
+
+getspam_score("C:/Users/Ali/Desktop/lab/easy_ham/0076.f565b68778786f9b9736f779489331f0")
+
+getspam_score("C:/Users/Ali/Desktop/lab/easy_ham/0062.b675bdb7b9e2321dfe97e48037fe7782")
+
+# test with spam
+
+getspam_score("C:/Users/Ali/Desktop/lab/spam_2/00018.336cb9e7b0358594cf002e7bf669eaf5")
+
+getspam_score("C:/Users/Ali/Desktop/lab/spam_2/00036.5b5e714c8d5b1050a392e55c42070f2c")
+
+getspam_score("C:/Users/Ali/Desktop/lab/spam_2/00118.141d803810acd9d4fc23db103dddfcd9")
+
+
+
+```
+
+## Conclusion 
+
+In conclusion, sentiment can be imported and analyzed by r. Sentiment are powerful tools used to assess and categorize texts and turn them into meanfull data for opinion mining. We can determine emotional tones, attitudes, and opinion based on set of texts data. 
+
+To analyze sentiment, we need to define a bag of words, get and reduce terms, filter data, convert inflections terms to their roots, extract words, and train the classifier.
