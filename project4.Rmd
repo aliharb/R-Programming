@@ -1,0 +1,157 @@
+---
+title: "Project4"
+author: "Ali Harb"
+date: "November 25, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction 
+
+In this project information from flights database will be migrated from MySQL(relational database) to MongoDB, which is NoSQL  .
+
+## Libraries 
+
+Loading the required libraries to perform the task using R studio. 
+```{r message=FALSE, warning=FALSE}
+library(knitr)
+library(RMySQL)
+library(RSQLite)
+library(rmongodb)
+library(mongolite)
+```
+
+## Load Data
+
+Load the flights dataset from MySQL to R environment. 
+
+Set password as mypassword:
+```{r echo=FALSE}
+mypassword <-'alex'
+```
+
+Get data from MySQL.
+
+```{r}
+
+mydrv <- dbDriver("MySQL")
+mydb <- dbConnect(mydrv, user ='root', password = mypassword, dbname='flights')
+
+dbListTables(mydb)
+dbListFields(mydb, 'flights')
+
+mydata <- dbGetQuery(mydb,"SELECT month, day, 
+                     dep_time, arr_time, air_time,  
+                     dep_delay, arr_delay, distance,
+                     carrier FROM flights")
+
+kable(head(mydata))
+kable(tail(mydata))
+```
+
+Observe the data structure of the imported object.
+
+```{r}
+str(mydata)
+```
+
+Substitute NA with 0, since all Na are integers data type.
+
+```{r}
+mydata[is.na(mydata)]<-0
+kable(tail(mydata))
+```
+
+Disconnect the MySQL database.
+
+```{r}
+dbDisconnect(mydb)
+```
+
+## Export Data
+
+Export the R data frame to mongodb, the NoSQL database.
+
+Establish connection with mongodb server:
+
+```{r}
+mongodata = mongo.create(host = "localhost")
+mongo.is.connected(mongodata)
+```
+
+Create the database and then upload it into mongo.
+
+```{r}
+# create the database in mongodb
+mongodata <- mongo(collection="documents",db="flights")
+
+# put column header into a list
+feilds<-colnames(mydata)
+
+#establish connection with mongodb
+mongodata = mongo.create(host = "localhost")
+mongo.is.connected(mongodata)
+
+# remove all record in database if it exist
+for(i in 1:length(feilds)){
+  st<- paste("flights",feilds[i], sep=".")
+  print(mongo.remove(mongodata, ns=st))
+}
+
+# Check if records are removed 
+for(i in 1:length(feilds)){
+  DBNS<-paste("flights", feilds[i], sep=".")
+  print(mongo.count(mongodata,ns=DBNS))
+}
+
+# insert the records to mongodb flights database
+for(i in 1:length(mydata)){
+  tmp<-as.list(mydata[i])
+  bson=mongo.bson.from.list(tmp)
+  st<- paste("flights", feilds[i], sep=".")
+  mongo.insert(mongodata,st, bson)
+}
+```
+
+Check if the dataset is loaded to mongodb server by reloading the dataset to R. 
+
+```{r}
+# if databse exists
+mongo.get.databases(mongodata)
+
+# create dataframe and a list
+df<-data.frame(stringsAsFactors = FALSE)
+lst<-list()
+
+# get the data into a list
+for(i in 1:9){
+  st<- paste("flights", feilds[i], sep=".")
+  tmplst<-mongo.find.all(mongodata, ns= st, mongo.oid2character = T)
+  tmplst[[1]][1]<-NULL
+  lst<-c(lst,tmplst)
+}
+#convert list to datframe
+df<-as.data.frame(lst,stringsAsFactors = FALSE)
+
+str(df)
+
+# display the data 
+kable(head(df))
+
+```
+
+## Advantages of NoSQL over SQL
+
+NoSQL can handle large volumes data, unstructured dataset, allow multiple data structures, and object oriented programming.  in addition to these create benefits it is also efficient and scalable. When working in an evolving project, NoSQL will provide a more particle option; otherwise, SQL is more practical for structural and logical related data with a standard and proven technology.
+
+
+## References  
+
+[rmongodb][https://gist.github.com/Btib7751989ert3/]
+
+[rmongo][https://www.r-bloggers.com/rmongo-accessing-mongodb-in-r/]
+
+
