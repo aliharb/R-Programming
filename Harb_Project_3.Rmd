@@ -1,0 +1,485 @@
+---
+title: "project 3"
+author: "Ali Harb"
+date: "January 2, 2017"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Intorduction 
+
+This is a project for your entire class section to work on together, since being able to work effectively on a virtual team is a key "soft skill" for data scientists. Please note especially the requirement about making a presentation during our first meetup after the project is due.
+
++  You will need to determine what tool(s) you'll use as a group to effectively collaborate, share code and any project documentation (such as motivation, approach, findings).
++  You will have to determine what data to collect, where the data can be found, and how to load it.
++  The data that you decide to collect should reside in a relational database, in a set of normalized tables.
++  You should perform any needed tidying, transformations, and exploratory data analysis in R.
++  Your deliverable should include all code, results, and documentation of your motivation, approach, and findings.
++  As a group, you should appoint (at least) three people to lead parts of the presentation.
++  While you are strongly encouraged (and will hopefully find it fun) to try out statistics and data models, your grade will not be affected by the statistical analysis and modeling performed (since this is a semester one course on Data Acquisition and Management).
++  Every student must be prepared to explain how the data was collected, loaded, transformed, tidied, and analyzed for outliers, etc. in our Meetup. This is the only way I'll have to determine that everyone actively participated in the process, so you need to hold yourself responsible for understanding what your class-size team did! If you are unable to attend the meet up, then you need to either present to me one-on-one before the meetup presentation, or post a 3 to 5 minute video (e.g. on YouTube) explaining the process. Individual students will not be responsible for explaining any forays into statistical analysis, modeling, data mining, regression, decision trees, etc.
+
+## Procedure
+
+create functions to do the following;
+
++  Scrape data science jobs from indeed.com
++  Clean and select useful information 
++  Gather collected data science job info into data frame 
++  Load data frame to MySQL
++  analysis 
+
+## Load Html Libraries 
+ 
+ Load libraries for web scraping html pages 
+```{r warning=FALSE, message=FALSE}
+library(xml2)
+library(rvest)
+library(knitr)
+library(XML)
+library(bitops)
+library(RCurl)
+library(htmltab)
+library(stringr)
+library(curl)
+library(DBI)
+library(RMySQL)
+library(tidyr)
+library(dplyr)
+```
+
+## Create functions to scrape the data using rvest library 
+
+#### Function to submit form
+
+```{r}
+
+submit_form2 <- function(session, form){
+  library(XML)
+  url <- XML::getRelativeURL(form$url, session$url)
+  url <- paste(url,'?',sep='')
+  values <- as.vector(rvest:::submit_request(form)$values)
+  att <- names(values)
+  if (tail(att, n=1) == "NULL"){
+    values <- values[1:length(values)-1]
+    att <- att[1:length(att)-1]
+  }
+  q <- paste(att,values,sep='=')
+  q <- paste(q, collapse = '&')
+  q <- gsub(" ", "+", q)
+  url <- paste(url, q, sep = '')
+  html_session(url)
+}
+```
+
+#### Function to concatenate a string into an html form: 
+
+```{r}
+# get the setion 
+session <- html_session("http://www.indeed.com")
+getform<-function(PageLimit,PageStart)
+{
+  query = "data science"
+  loc = paste0("New York&limit=",PageLimit,"&start=",PageStart)
+    myForm <- html_form(session)[[1]]
+  myForm <- set_values(myForm, q = query, l = loc)
+  
+  return (myForm)
+}
+```
+
+
+#### General purpose function to extract html text using CSS:
+
+```{r}
+
+gethtmldata<-function(itemporp_Value,htmlSession)
+{
+  
+  htmlnode<-paste0("[itemprop=",itemporp_Value,"]")
+  htmldata<- htmlSession %>% 
+  html_nodes(htmlnode) %>%
+  html_text()
+  
+
+  return(htmldata)
+}
+
+```
+
+
+#### Fuction to get Salary:
+
+```{r}
+# Get Salary
+getTheSalaries<-function(sessions,URLlink)
+{
+  salary_links <- html_nodes(sessions, css = "#resultsCol li:nth-child(2) a") %>% html_attr("href")
+  salary_links <- paste(URLlink, salary_links, sep='')
+  salaries <- lapply(salary_links, . %>% html() %>% html_nodes("#salary_display_table .salary") %>% html_text())
+  salary <- unlist(salaries)
+  salary<-gsub("\\$", "", salary)
+  salary<-gsub("\\s", "", salary)
+  salary[salary=="NoData"]<-"0"
+
+  return(salary)
+}
+
+```
+
+
+#### Function to get job title:
+
+```{r}
+
+getJobTitle<-function(htmlSession)
+{
+    htmldata<- htmlSession %>% 
+    html_nodes("[itemprop=title]") %>%
+    html_text()
+  
+    htmldata<-sub(".*,","",htmldata)
+    #htmldata<-gsub("\\s$", "",htmldata)
+    htmldata<-sub('-.*',"",htmldata)
+    htmldata<-gsub("\\s$", "",htmldata)
+    htmldata <- gsub("/", "", htmldata, fixed=TRUE) 
+
+  return(htmldata)
+}
+```
+
+
+#### Function to get the Company:
+
+```{r}
+
+getCompany<-function(htmlSession)
+{
+
+  htmldata<- htmlSession %>% 
+    html_nodes("[itemprop=hiringOrganization]") %>%
+    html_text()
+  
+  htmldata<-gsub("\n", "", htmldata)
+  htmldata<-gsub("\\s", "", htmldata)
+  
+  return(htmldata)
+}
+
+```
+
+
+#### Function to get the Location:
+
+```{r}
+
+getLocation<-function(htmlSession)
+{
+  
+  htmldata<- htmlSession %>% 
+    html_nodes("[itemprop=addressLocality]") %>%
+    html_text()
+
+  return(htmldata)
+}
+```
+
+
+#### Function to get the job description:
+
+```{r}
+
+getJobDescription<-function(htmlSession)
+{
+  
+  htmldata<- htmlSession %>% 
+    html_nodes("[itemprop=description]") %>%
+    html_text()
+  
+  htmldata<-gsub("\n", "", htmldata)
+
+    return(htmldata)
+}
+
+```
+
+#### Function to get the indeed job link:
+
+```{r}
+
+getIndeedLink<-function(htmlSession,pretty)
+{
+
+ htmldata<- htmlSession %>% 
+    html_nodes("[itemprop=title]")%>%
+    html_attr("href")
+
+  links<- paste('https://www.indeed.com', htmldata, sep='')
+  htmldata <- paste('[Link](https://www.indeed.com', htmldata, sep='')
+  htmldata <- paste(htmldata, ')', sep='')
+  
+  if(pretty==1){
+    return(htmldata)
+  }
+  else 
+  {
+    return(links)
+    
+  }
+}
+```
+
+#### Functions to find the skills and the job requirements based on data science skills and requirement needed 
+
+```{r}
+# extract design skills
+extractDesignStrings <- function(passParm)
+{
+  
+  temp1<-passParm %>% html_nodes(xpath='//li[contains(.,"modeling")]') %>% html_text()
+  temp2<-passParm %>% html_nodes(xpath='//li[contains(.,"models")]') %>% html_text()
+  
+  if(identical(temp1,character(0)) && identical(temp2,character(0))){
+    tempdata=0
+  }else{
+    tempdata=1
+  }
+  
+  return(tempdata)
+}
+
+# extract all other skills
+extractStrings<-function(passParm,stringTomatch)
+{
+  StringTomatch<-paste0("//li[contains(.,'",stringTomatch,"')]")
+  temp<-passParm %>% html_nodes(xpath=StringTomatch) %>% html_text()
+
+  if(identical(temp,character(0))){ 
+    tempdata=0 
+  }else{ 
+    tempdata=1 
+    }
+  
+
+  return(tempdata)
+}
+
+
+# apply the two previous functions to find 15 data science skills and store them into a dataframe
+extractMatchingStrings<-function(URLlinkArray)
+{
+  r<-NULL; py<-NULL
+  hadoop<-NULL; sql<-NULL
+  shiny<-NULL; spark<-NULL
+  pb<-NULL; st<-NULL
+  ml<-NULL; al<-NULL
+  eng<-NULL; com<-NULL
+  strg<-NULL; idea<-NULL
+  design<-NULL
+  
+
+lengthOfString=length(URLlinkArray)+1
+
+  for(i in 1:lengthOfString) 
+  {
+    tryCatch(
+      {
+        url <- URLlinkArray[i]
+        tmp <- url %>% read_html 
+        # design Skills
+        design <- c(design,extractDesignStrings(tmp))
+
+        # idea requirement
+        idea <- c(idea,extractStrings(tmp,"ideas"))
+
+        # strategy requirement 
+        strg <- c(strg,extractStrings(tmp,"strategy"))
+
+        # engineering requirement 
+        eng <- c(eng,extractStrings(tmp,"engineering"))
+
+        # communication requiremen
+        com <- c(com,extractStrings(tmp,"communication"))
+
+        # algorithms requirement 
+        al <- c(al,extractStrings(tmp,"algorithms"))
+
+        # machine learning requirement
+        ml <- c(ml,extractStrings(tmp,"machine learning"))
+
+        # statistics requirement 
+        st <- c(st,extractStrings(tmp,"statistics"))
+
+        # probability requirement 
+        pb <- c(pb,extractStrings(tmp,"probability"))
+
+        # spark programming skills
+        spark <- c(spark,extractStrings(tmp,"Spark"))
+
+        # shiny programming skills
+        shiny <- c(shiny,extractStrings(tmp,"Shiny"))
+
+        # sql programming skills
+        sql <- c(sql,extractStrings(tmp,"SQL"))
+
+        # hadoop programming Skills
+        hadoop <- c(hadoop,extractStrings(tmp,"Hadoop"))
+
+        # py programming Skills
+        py <- c(py,extractStrings(tmp,"Python"))
+
+        # r programming Skills
+        r <- c(r,extractStrings(tmp,"R,"))
+
+        
+
+      }, error=function(e){})
+  }
+  
+  tempdf<-data.frame(design,idea,strg,eng,com,al,ml,st,pb,spark,shiny,sql,hadoop,py,r)
+  
+  return(tempdf)
+}
+
+# replace eliminated raws due to NA by zeros to be able join dataframe
+replaceMissingRow<-function(rowToAdd,df)
+{
+  newrow<-vector('numeric',15)
+  for(i in 1:rowToAdd){
+    df= rbind(df,newrow)
+  }
+  return(df)
+}
+```
+
+
+#### Get the data science Job information for 500 posted jobs with patch of 100 posts. 
+
+```{r warning=FALSE, message=FALSE}
+
+# Set the maximum job results to get from indeed
+maxResults<-500
+
+# Set the job results per page
+nResultsPerpage<-100
+
+Salary<-NULL
+JobTitle<-NULL
+Company<-NULL
+Location<-NULL
+JobDescription<-NULL
+IndeedLink<-NULL
+getLink<-NULL
+
+for(i in seq(0, (maxResults-nResultsPerpage), nResultsPerpage)){
+  
+form<-getform(nResultsPerpage,i)
+indeed_sessions <- submit_form2(session, form)
+
+# salary
+temp_data<-getTheSalaries(indeed_sessions,"http://www.indeed.com/")
+Salary<-c(Salary,temp_data)
+
+temp_data<-getJobTitle(indeed_sessions)
+JobTitle<-c(JobTitle,temp_data)
+
+temp_data<-getCompany(indeed_sessions)
+Company<-c(Company,temp_data)
+
+temp_data<-getLocation(indeed_sessions)
+Location<-c(Location,temp_data)
+
+temp_data<-getJobDescription(indeed_sessions)
+JobDescription<-c(JobDescription,temp_data)
+
+temp_data<-getIndeedLink(indeed_sessions,0)
+IndeedLink<-c(IndeedLink,temp_data)
+
+temp_data<-getIndeedLink(indeed_sessions,1)
+getLink<-c(getLink,temp_data)
+}
+# the length of the data
+length(IndeedLink)
+```
+
+#### create a data frame with the available job posting information 
+
+```{r warning=FALSE, message=FALSE}
+Indeeddf<-data.frame(JobTitle,Company,Salary,JobDescription,Location,getLink)
+kable(head(Indeeddf),format = "html")
+kable(tail(Indeeddf),format = "html")
+Indeeddf<-data.frame(JobTitle,Company,Salary,JobDescription,Location,IndeedLink)
+```
+
+#### Extract skills requirement and assign "1" if skills posted and "0" if not posted.
+
+```{r warning=FALSE, message=FALSE}
+Skillsdf<-extractMatchingStrings(IndeedLink)
+kable(head(Skillsdf))
+kable(tail(Skillsdf))
+
+diff<-nrow(Indeeddf)-nrow(Skillsdf)
+if(diff>0){
+Skillsdf<-replaceMissingRow(diff,Skillsdf)
+}
+```
+
+## Analysis
+
+Plot the sum of every skills column to find the most demanded skills
+
+```{r warning=FALSE, message=FALSE}
+
+SkillsSum<-colSums(Skillsdf, na.rm = TRUE)
+SkillsSum<-SkillsSum[order(-SkillsSum)]
+SkillsSum
+
+barplot(SkillsSum, main="Skills Distribution", horiz=TRUE,space= 2.5, col ="lightblue", ylab = "Skills")
+```
+
+## Store data
+
+#### Combine the information and the skills dataframe 
+
+```{r warning=FALSE, message=FALSE}
+
+# bind dataframes
+data_science<-cbind(Indeeddf,Skillsdf)
+
+# name columns
+colnames(data_science) <- c("Title","Company","Salary","Description","Location","Link","Design","Idea","Strategy",
+                            "Engineering","Communication","Algorithm","Machine_Learning","Statistic","Probability","Spark","Shiny","Sql","Hadoop","Python","R")
+
+
+kable(head(data_science),format = "html")
+kable(tail(data_science),format = "html")
+
+# clean data from unvalid utf8 error
+data_science$Company<- iconv(data_science$Company, "latin1", "UTF-8")
+data_science$Description<- iconv(data_science$Description, "latin1", "UTF-8")
+data_science$Description<- iconv(data_science$Description, "latin1", "UTF-8")
+data_science$Title<- iconv(data_science$Title, "latin1", "UTF-8")
+```
+
+#### Write the data frame to a MySQL database schema
+
+```{r include=FALSE}
+myPassword<-"alex"
+```
+
+```{r warning=FALSE, message=FALSE}
+
+drv = dbDriver("MySQL")
+con <- dbConnect(drv, user='root', password = myPassword, dbname='dscience',host="localhost",client.flag=CLIENT_MULTI_STATEMENTS)
+
+dbWriteTable(con,"data_science",data_science, overwrite = TRUE) 
+```
+
+## Conclusion
+
+The data for data science jobs were scraped form indeed web pages using rvest and hlmt. Data was separated, cleaned, stored into data frame and then load them into MySQL, the relational database.  
+The plot shows that Python, SQL, design, and communication are the most needed skills in data sciense job. 
+
