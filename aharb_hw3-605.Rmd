@@ -1,0 +1,220 @@
+---
+title: "HW3"
+author: "Ali Harb"
+date: "February 24, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+
+```{r}
+library(pracma)
+library(MASS)
+```
+
+## 1. Problem set 1
+
+#### (1) What is the rank of the matrix A?
+$$\mathbf{A} = \left[\begin{array}
+{rrr}
+1 & 2 & 3 & 4 \\
+-1 & 0 & 1 & 3 \\
+0 & 1 & -2 & 1 \\
+5 & 4 & -2 & -3
+\end{array}\right]
+$$
+
+```{r}
+A <- matrix(c(1,2,3,4,-1,0,1,3,0,1,-2,1,5,4,-2,-3),nrow=4)
+A
+```
+
+Reduce to echelon form and find the rank
+
+```{r}
+rref(A)
+Rank(A)
+```
+
+The Rank of A is 4
+
+#### (2) Given an mxn matrix where m > n, what can be the maximum rank? The minimum rank, assuming that the matrix is non-zero?
+
++ If m > n then  the maximum rank of the matrix would n Rank.
++ If the matrix has non-zero elemnt then the minimum ramk would be 1.
+
+#### (3) What is the rank of matrix B?
+$$\mathbf{B} = \left[\begin{array}
+{rrr}
+1 & 2 & 1 \\
+3 & 6 & 3 \\
+2 & 4 & 2
+\end{array}\right]
+$$
+
+By looking at matrix B we can easily determine that it has a rank of 1 because row 2 and 3 are scalar multiples of row 1. Thus, they are linearly dependent.
+
+Get the rank using the Rank function we will get the same result
+
+```{r}
+B <- matrix(c(1,2,1,3,6,3,2,4,2),nrow=3)
+B
+```
+
+Reduce to echelon form and find the rank
+
+```{r}
+rref(B)
+Rank(B)
+```
+
+## 2. Problem set 2
+
+#### Compute the eigenvalues and eigenvectors of the matrix A. You'll need to show your work. You'll need to write out the characteristic polynomial and show your solution.
+
+$$\mathbf{A} = \left[\begin{array}
+{rrr}
+1 & 2 & 3 \\
+0 & 4 & 5 \\
+0 & 0 & 6
+\end{array}\right]
+$$
+
+#### Please show your work using an R-markdown document. Please name your assignment submission with your first initial and last name.
+
+Solution
+
+Find the eigenvalue of A using the rule of sarrus:
+
+$$\mathbf{p(\lambda)} = \left[\begin{array}
+{rrr}
+\lambda -1 & -2 & -3 & \lambda -1 & -2 \\
+0 & \lambda -4 & -5 & 0 & \lambda -4 \\
+0 & 0 & \lambda -6 & 0 & 0
+\end{array}\right]
+$$
+
+$$ p(\lambda) = (\lambda -1)(\lambda-4)(\lambda-6)+0+0-0-0-0 $$ 
+
+$$ (\lambda -1)= 0 => \lambda = 1$$
+$$ (\lambda -4)= 0 => \lambda = 4$$
+$$ (\lambda -6)= 0 => \lambda = 6$$
+
+We can also use the eigen function to find the eigen values of A matrix 
+
+```{r}
+A <- matrix(c(1,2,3,0,4,5,0,0,6),nrow=3, byrow=T)
+A
+
+Lambda<-eigen(A)$value
+Lambda
+
+```
+
+Find the eigenvectors of A:
+
+### Solve for $\lambda = 1$
+
+```{r}
+L=1
+L1 <- matrix(c(L-1,-2,-3,0,L-4,-5,0,0,L-6),nrow=3, byrow=T)
+L1
+```
+
+Reduce to echelon form
+
+```{r}
+rref(L1)
+```
+
+$( \lambda I_3 - A )v = \left[ {\begin{array}{ccc} 
+0 & 1 & 0\\
+0 & 0 & 1\\
+0 & 0 & 0\ \end{array} } 
+\right] \left[ {\begin{array}{c}
+v_1\\ 
+v_2\\ 
+v_3\ \end{array} } \right]$
+
+$v_2 = 0 \\ v_3 = 0 \\ v_1 = 1$
+
+Let $v_1 = a$
+
+$E_{\lambda = 1} = a \left[ {\begin{array}{c} 1\\ 0\\ 0\ \end{array} } \right]$
+
+
+### Solve for $\lambda = 4$
+
+```{r}
+L=4
+L4 <- matrix(c(L-1,-2,-3,0,L-4,-5,0,0,L-6),nrow=3, byrow=T)
+L4
+```
+
+Reduce to echelon form
+
+```{r}
+r=rref(L4)
+fractions(r)
+```
+
+$( \lambda I_3 - A )v = \left[ {\begin{array}{ccc} 
+1 &-2/3 & 0\\
+0 & 0 & 1\\
+0 & 0 & 0\ \end{array} } 
+\right] \left[ {\begin{array}{c}
+v_1\\ 
+v_2\\ 
+v_3\ \end{array} } \right]$
+
+$v_2 = 2/3 v_2 \\ v_3 = 0 \\ v2 = 1$
+
+Let $v_2 = b$
+
+$E_{\lambda = 4} = b \left[ {\begin{array}{c} 2/3\\ 1\\ 0\ \end{array} } \right]$
+
+
+### Solve for $\lambda = 6$
+
+```{r}
+L=6
+L6 <- matrix(c(L-1,-2,-3,0,L-4,-5,0,0,L-6),nrow=3,byrow=T)
+L6
+```
+
+Reduce to echelon form
+
+```{r}
+r=rref(L6)
+fractions(r)
+```
+
+
+$( \lambda I_3 - A )v = \left[ {\begin{array}{ccc} 
+1 & 0 & -8/5\\
+0 & 1 & -5/2\\
+0 & 0 & 0\ \end{array} } 
+\right] \left[ {\begin{array}{c}
+v_1\\ 
+v_2\\ 
+v_3\ \end{array} } \right]$
+
+$v_1 = 8/5 v_3 \\ v_2 = 5/2 v_3 , v3=1$
+
+Let $v_3 = c$
+
+$E_{\lambda = 6} = c \left[ {\begin{array}{c} 8/5\\ 5/2\\ 1\ \end{array} } \right]$
+
+
+
+
+
+
+
+
+
+
