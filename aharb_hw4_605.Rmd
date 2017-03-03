@@ -1,0 +1,165 @@
+---
+title: "AHarb_HW4"
+author: "Ali Harb"
+date: "February 26, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Library
+
+```{r}
+library(pracma)
+library(MASS)
+```
+
+## 1. Problem Set 1
+#### In this problem, we'll verify using R that SVD and Eigenvalues are related as workedout in the weekly module. Given a 3 x 2 matrix A
+
+$$\mathbf{A} = \left[\begin{array}
+{rrr}
+1 & 2 & 3 \\
+-1 & 0 & 4 
+\end{array}\right]
+$$
+
+#### Write code in R to compute X = AA^T and Y = A^TA. Then, compute the eigenvalues and eigenvectors of X and Y using the built-in commans in R.
+
+#### Then, compute the left-singular, singular values, and right-singular vectors of A using the svd command. Examine the two sets of singular vectors and show that they are indeed eigenvectors of X and Y. In addition, the two non-zero eigenvalues (the 3rd value will be very close to zero, if not zero) of both X and Y are the same and are squares of the non-zero singular values of A.
+
+#### Your code should compute all these vectors and scalars and store them in variables. Please add enough comments in your code to show me how to interpret your steps.
+
+SOLUTION :
+
+Matrix A
+```{r}
+A <- matrix(c(1,2,3,-1,0,4), nrow=2, byrow=T)
+A
+```
+
+Solving for X=$AA^T$ (U )
+```{r}
+X <- A%*%t(A)
+X
+```
+
+Solving for Y=$A^TA$
+```{r}
+Y <- t(A)%*%A
+Y
+```
+
+Find the eigenvalue and the eigenvectors of X ad Y
+
+```{r}
+# Compute for X eigenvalue 
+eX <- eigen(X)
+eXValue <- round(eX$values,5)
+eXVectors <- round(eX$vectors,5)
+eXValue
+eXVectors
+
+# Compute for Y eigenvalue
+eY=eigen(Y)
+eYValue <- round(eY$values,5)
+eYVectors <- round(eY$vectors,5)
+eYValue
+eYVectors
+```
+
+Find the sigma D using one of the eigenvalue of U or V
+
+```{r}
+# let take U eigenvalue
+D <- sqrt(eXValue)
+D <- D*diag(length(D))[,1:2]
+D
+```
+
+Find svd 
+```{r}
+SVD <-svd(A)
+SVD
+```
+
+#### Summary Results of Problem Set 1:
+
+The results show that the two sets of singular vectors are eigenvectors. Ended these vectors are equal to eigenvector of X and Y with a scaler multiplier of negative one.
+
++ The eigenvectors of X are the same as the U vectors, the left singular-vector. 
+
++ The eigenvectors of Y are the same as the V vectors, the right singular-vector. 
+
++ The non-zero singular values of X and Y are the square roots of the non-singular eigenvalues of U and V as shown by the variable D result.
+
+## 2. Problem Set 2
+
+#### Using the procedure outlined in section 1 of the weekly handout, write a function to compute the inverse of a well-conditioned full-rank square matrix using co-factors. In order to compute the co-factors, you may use built-in commands to compute the determinant. Your function should have the following signature:
+
+### B = myinverse(A)
+
+#### Where A is a matrix and B is its inverse and AxB = I. The off-diagonal elements of I should be close to zero, if not zero. Likewise, the diagonal elements should be close to 1, if not 1. Small numerical precision errors are acceptable but the function myinverse should be correct and must use co-factors and determinant of A to compute the inverse. Please submit PS1 and PS2 in an R-markdown document with your frst initial and last name.
+
+My inverse function;
+```{r}
+myInverse<-function(A){
+
+# number of square matrix rows
+rows=nrow(A)
+# number of square matrix columns
+cols=ncol(A)
+
+# find the determinant
+d=det(A)
+
+# test for square matrix
+if(rows!=cols) return("Not a Square Matrix")
+# test for non-zero determinant
+else if(d==0) {return("not Invertable")}
+# solve if it is a square and invertable
+else 
+{
+# variables to invert the sign of the co-factor 
+s=1
+C=matrix(data=NA,nrow = rows,ncol = cols)
+# for loops to find the minors Matrix and the co-factors C
+for (i in 1:rows){
+    for (j in 1:rows){
+      # get Minors
+      MinorMatrix <-A[-i,-j]
+      # get co-factors 
+      C[i,j] <- s*det(MinorMatrix)
+      # invert the sign
+      if(s==1){
+        s=-1
+        }else{
+          s=1
+        }
+      } 
+  } 
+}
+
+# get the inverse
+inv=t(C)/d
+return(fractions(inv))
+}
+```
+
+Test the Function 
+```{r}
+X <- matrix(c(1,2,0,-1,1,1,1,2,3),nrow=3,byrow = T)
+x_inv<-myInverse(X)
+x_inv
+```
+
+Validate Result 
+
+```{r}
+I=round(X%*%x_inv,6)
+I
+```
+
+
