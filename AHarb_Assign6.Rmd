@@ -1,0 +1,195 @@
+---
+title: "AHarb_Assign_6"
+author: "Ali Harb"
+date: "March 12, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Libraries
+
+```{r}
+library(MASS)
+library(stringr)
+suppressPackageStartupMessages(library(dplyr))
+```
+
+
+### (1) When you roll a fair die 3 times, how many possible outcomes are there?
+
+The possible outcome for 6 fair dice is 6^n^, where n is the number of times:
+
+```{r}
+6^3
+```
+
+### (2) What is the probability of getting a sum total of 3 when you roll a die two times?
+
+Assuming Rolling two 6 fair dies, the probability of getting a sum of 3 is 2 /6^n^ :
+
+```{r}
+fractions(2/6^2)
+```
+
+### (3) Assume a room of 25 strangers. What is the probability that two of them have the same birthday? Assume that all birthdays are equally likely and equal to 1=365 each. What happens to this probability when there are 50 people in the room?
+
+The conditional probability of the 25 strangers that two of them have the same birthday is the 1-P(A^'^) ; where, P(A^'^) is the probability of everyone have a unique birthday. 
+
+P(A) = 1-P(A^'^) 
+
+P(A^'^)=(1/365)^n^ (365 x 364 x .. x (365-n))
+
+```{r}
+birthdayProb<-function(n_Individuals){
+n<-n_Individuals
+t<-(365-n)+1
+NotMatching<-prod(365:t)/(365^n)
+NotMatching
+Twomatching<-1-NotMatching
+Twomatching
+result<-c("Not Matching: ",round(NotMatching,4),"Two Matching: ",round(Twomatching,4) )
+return(result)
+}
+
+birthdayProb(25)
+```
+
+
+For 50 poeple in the room the probability is:
+```{r}
+birthdayProb(50)
+```
+
+### 2. Problem Set 2 - 4 points
+
+#### Sometimes you cannot compute the probability of an outcome by measuring the sample space and examining the symmetries of the underlying physical phenomenon, as you could do when you rolled die or picked a card from a shuffed deck. You have to estimate probabilities by other means. For instance, when you have to compute the probability of various english words, it is not possible to do it by examination of the sample space as it is too large. You have to resort to empirical techniques to get a good enough estimate. One such approach would be to take a large corpus of documents and from those documents, count the number of occurrences of a particular character or word and then base your estimate on that. Write a program to take a document in English and print out the estimated probabilities for each of the words that occur in that document. Your program should take in ffle containing a large document and write out the probabilities of each of the words that appear in that document. Please remove all punctuation (quotes, commas, hyphens etc) and convert the words to lower case before you perform your calculations. Extend your program to calculate the probability of two words occurring adjacent to each other. It should take in a document, and two words (say the and for) and compute the probability of each of the words occurring in the document and the joint probability of both of them occurring together. The order of the two words is not important. Use the accompanying document for your testing purposes. Compare your probabilities of various words with the Time Magazine corpus: http://corpus.byu.edu/time/ 1
+
+
+The program will take the following procedure:
++ Get the text
++ Clean the data
++ Find the probability of a single word
++ Find the probability of a pair of adjacent words
++ Find the probability of user selected two words
+
+Get text and clean data:
+
+```{r}
+# set directoty 
+
+setwd("C:/Users/Ali/Documents/R/605Ass6/data")
+myFileName<-"assign6.sample.txt"
+
+getTextFile<-function(myFileName){
+  
+  # Read the text
+  fileText<-read.delim(myFileName,header = FALSE, stringsAsFactors = FALSE)
+  # Convert to lower case and collapse by space
+  fileLowercase <- str_to_lower(paste(fileText, collapse = ' '))
+  fileLowercase <- str_replace_all(fileLowercase, '[^[:lower:]^ ]', '')
+  # Convert the file into vector
+  fileLowercase<-iconv(fileLowercase, "UTF-8", "ASCII", sub = "")
+  # takes the C from the first word
+  s<-word(fileLowercase,1)
+  x<-sub('.', '', s)
+  fileLowercase<-sub(s,x, fileLowercase)
+  
+  return(fileLowercase)
+}
+
+     
+getWordsCount<-function(fileLowercase){
+  
+ firstWord=paste0(strsplit(word(fileLowercase,1), '')[[1]][-1], collapse = '')
+  # Clean Special Character and substitude them with zero-character
+  words <- str_split(fileLowercase, ' ')[[1]]
+  # Create a dataframe
+  df <- as.data.frame(table(words)[-1], stringsAsFactors = FALSE)
+  return(df)
+}
+
+textFile<-getTextFile(myFileName)
+wordsCountdf<-getWordsCount(textFile)
+```
+
+The probability of the single words:
+
+```{r}
+
+oneWord<-function(myText){
+  nWords<-sum(myText[,2])
+  # The probability of every word
+  probability <- myText %>% transmute(Word = words, Probability = Freq / nWords)
+  # print value
+  return(probability)
+}
+
+
+myWordsProb=oneWord(wordsCountdf)
+
+```
+
+
+The probability of a pair of adjacent words:
+
+```{r}
+TwoWords<-function(Filteredtext,VarSum,n) { 
+  
+  x<-str_split(Filteredtext, " ")[[1]]
+  
+  df <- data.frame(word = I('a'), count = 0)
+  words_rev<-vector()
+  words_frw<-vector()
+  count<-vector()
+  z=0
+  v=0
+
+
+  for(i in 1: (length(x)-(n-1))){
+    
+    words_rev[i]<- paste0(" ",x[i+1]," ",x[i]," ")
+    words_frw[i]<- paste0(" ",x[i]," ",x[i+1]," ")
+    z=sum(str_count(Filteredtext,words_rev[i]))
+    v=sum(str_count(Filteredtext,words_frw[i]))
+    count[i]<-z+v
+  }
+  
+  df<-data.frame(words_frw,count)
+
+  wordsProb<-df$count/VarSum
+
+  df<-cbind(df,wordsProb)
+  df<-df[order(count,wordsProb),]
+  df<-unique(df)
+  
+  return(df)
+}
+
+head(TwoWords(textFile,sum(wordsCountdf$Freq),2))
+tail(TwoWords(textFile,sum(wordsCountdf$Freq),2))
+```
+
+
+The probability of user selected two words
+
+```{r}
+CheckforTwoGivenWords<-function(Filteredtext,VarSum,word1,word2){
+
+  tmp1<-paste0(" ",word1," ",word2," ")
+  tmp2<-paste0(" ",word2," ",word1," ")
+  tmp1count<-sum(str_count(Filteredtext,tmp1))
+  tmp2count<-sum(str_count(Filteredtext,tmp2))
+  thecount<-tmp1count+tmp2count
+  Theprob<-thecount/VarSum
+  R<-c(tmp2,thecount,round(Theprob,5))
+  return(R)
+}
+
+# test with of and the
+CheckforTwoGivenWords(textFile,sum(wordsCountdf$Freq),"of","the")
+
+```
+
